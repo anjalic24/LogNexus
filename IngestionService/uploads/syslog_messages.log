@@ -1,0 +1,19 @@
+<35>1 2025-10-29T12:52:10.000+00:00 server-21 sshd 41234 - - Failed password for invalid user admin from 116.227.215.209 port 51123 ssh2
+<35>1 2025-10-29T12:52:18.000+00:00 server-21 sshd 41235 - - Failed password for invalid user root from 116.227.215.209 port 51124 ssh2
+<35>1 2025-10-29T12:52:25.000+00:00 server-21 sshd 41236 - - Failed password for invalid user test from 116.227.215.209 port 51125 ssh2
+<13>1 2025-10-29T12:52:40.000+00:00 server-21 sshd 41237 - - Connection from 116.227.215.209:51126 accepted
+<60>1 2025-10-29T12:53:05.000+00:00 server-21 sshd 41238 - - Accepted password for user7 from 116.227.215.209 port 51127 ssh2
+<28>1 2025-10-29T12:53:20.000+00:00 server-21 systemd 51234 - - pam_unix(sshd:session): session opened for user user7 by (uid=0)
+<49>1 2025-10-29T12:53:50.000+00:00 server-21 sudo 51235 - - user7 : TTY=pts/0 ; PWD=/home/user7 ; USER=root ; COMMAND=/bin/cat /etc/passwd
+<54>1 2025-10-29T12:54:10.000+00:00 server-21 firewalld 51236 - - WARNING: Suspicious outbound connection to 185.199.110.153 by user7
+<53>1 2025-10-29T12:54:25.000+00:00 server-21 cron 51237 - - Scheduled task created by user7
+<75>1 2025-10-29T12:55:00.000+00:00 server-21 sshd 51238 - - User user7 logged out
+<49>1 2025-10-29T08:10:00.000+00:00 server-06 sudo 57511 - - Service postgresql started successfully
+<4>1 2025-10-29T08:11:12.000+00:00 server-08 httpd 14055 - - Disk usage on /dev/sda1 is at 58%
+<7>1 2025-10-29T08:12:54.000+00:00 server-07 postfix 23489 - - Backup completed successfully
+<43>1 2025-10-29T08:13:24.000+00:00 server-02 sudo 31753 - - Service mysql started successfully
+<35>1 2025-10-29T09:01:30.000+00:00 server-11 sshd 47229 - - Failed password for invalid user user5 from 87.162.152.66 port 32740 ssh2
+<60>1 2025-10-29T09:02:24.000+00:00 server-16 sshd 9156 - - Accepted publickey for user3 from 17.124.164.38 port 55116 ssh2: RSA SHA256:abc123def456
+<54>1 2025-10-29T09:04:30.000+00:00 server-08 firewalld 29199 - - WARNING: Potential security scan detected from 203.0.113.200
+<11>1 2025-10-29T09:06:00.000+00:00 server-02 sudo 33615 - - Disk usage on /dev/sda1 is at 67%
+<44>1 2025-10-29T09:06:18.000+00:00 server-09 cron 55928 - - Memory usage critical: 90% used

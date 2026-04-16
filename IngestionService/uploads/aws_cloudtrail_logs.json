@@ -1,0 +1,30 @@
+{
+  "Records": [
+    {
+      "eventVersion": "1.08",
+      "userIdentity": {
+        "type": "IAMUser",
+        "principalId": "AIDA9999999999991",
+        "arn": "arn:aws:iam::123456789012:user/user7",
+        "accountId": "123456789012",
+        "accessKeyId": "AKIA9999999991",
+        "userName": "user7"
+      },
+      "eventTime": "2025-10-29T12:54:40Z",
+      "eventSource": "ec2.amazonaws.com",
+      "eventName": "CreateSnapshot",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "116.227.215.209",
+      "userAgent": "aws-cli/2.0",
+      "requestParameters": {
+        "volumeId": "vol-attack-1"
+      },
+      "responseElements": {
+        "snapshotId": "snap-attack-1"
+      },
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "123456789012"
+    }
+  ]
+}

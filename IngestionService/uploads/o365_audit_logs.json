@@ -1,0 +1,154 @@
+[
+  {
+    "CreationTime": "2025-10-29T12:53:20Z",
+    "Id": "11111111-aaaa-bbbb-cccc-000000000001",
+    "Operation": "UserLoggedIn",
+    "OrganizationId": "contoso.onmicrosoft.com",
+    "RecordType": 15,
+    "ResultStatus": "Success",
+    "UserKey": "ATTACK-KEY-1",
+    "UserType": 0,
+    "Version": 1,
+    "Workload": "AzureActiveDirectory",
+    "ClientIP": "116.227.215.209",
+    "ObjectId": "user7@contoso.com",
+    "UserId": "user7@contoso.com",
+    "AzureActiveDirectoryEventType": 1,
+    "ExtendedProperties": [
+      { "Name": "UserAgent", "Value": "Mozilla/5.0 (Windows NT 10.0)" },
+      { "Name": "RequestType", "Value": "OAuth2:Token" }
+    ],
+    "DeviceProperties": [
+      { "Name": "OS", "Value": "Windows 10" },
+      { "Name": "BrowserType", "Value": "Chrome" }
+    ]
+  },
+  {
+    "CreationTime": "2025-10-29T12:53:50Z",
+    "Id": "11111111-aaaa-bbbb-cccc-000000000002",
+    "Operation": "UserLoginFailed",
+    "OrganizationId": "contoso.onmicrosoft.com",
+    "RecordType": 15,
+    "ResultStatus": "Failed",
+    "UserKey": "ATTACK-KEY-2",
+    "UserType": 0,
+    "Version": 1,
+    "Workload": "AzureActiveDirectory",
+    "ClientIP": "116.227.215.209",
+    "ObjectId": "user7@contoso.com",
+    "UserId": "user7@contoso.com",
+    "LogonError": "InvalidPassword",
+    "ExtendedProperties": [
+      { "Name": "UserAgent", "Value": "python-requests/2.28.0" },
+      { "Name": "RequestType", "Value": "OAuth2:Token" }
+    ]
+  },
+  {
+    "CreationTime": "2025-10-29T12:54:10Z",
+    "Id": "11111111-aaaa-bbbb-cccc-000000000003",
+    "Operation": "AddUser",
+    "OrganizationId": "contoso.onmicrosoft.com",
+    "RecordType": 15,
+    "ResultStatus": "Success",
+    "UserKey": "ATTACK-KEY-3",
+    "UserType": 0,
+    "Version": 1,
+    "Workload": "AzureActiveDirectory",
+    "ClientIP": "116.227.215.209",
+    "ObjectId": "temp-admin@contoso.com",
+    "UserId": "user7@contoso.com",
+    "ExtendedProperties": [
+      { "Name": "Role", "Value": "GlobalAdmin" }
+    ]
+  },
+  {
+    "CreationTime": "2025-10-29T12:54:30Z",
+    "Id": "11111111-aaaa-bbbb-cccc-000000000004",
+    "Operation": "FileAccessed",
+    "OrganizationId": "contoso.onmicrosoft.com",
+    "RecordType": 6,
+    "ResultStatus": "Success",
+    "UserKey": "ATTACK-KEY-4",
+    "UserType": 0,
+    "Version": 1,
+    "Workload": "SharePoint",
+    "ClientIP": "116.227.215.209",
+    "ObjectId": "https://contoso.sharepoint.com/sites/Finance/Documents/Salary.xlsx",
+    "UserId": "user7@contoso.com",
+    "SourceFileName": "Salary.xlsx",
+    "SourceRelativeUrl": "sites/Finance/Documents",
+    "SiteUrl": "https://contoso.sharepoint.com/sites/Finance"
+  },
+
+  {
+    "CreationTime": "2025-10-29T12:52:10Z",
+    "Id": "22222222-bbbb-cccc-dddd-000000000005",
+    "Operation": "UserLoginFailed",
+    "OrganizationId": "contoso.onmicrosoft.com",
+    "RecordType": 15,
+    "ResultStatus": "Failed",
+    "UserKey": "ATTACK-KEY-5",
+    "UserType": 0,
+    "Version": 1,
+    "Workload": "AzureActiveDirectory",
+    "ClientIP": "116.227.215.209",
+    "ObjectId": "admin@contoso.com",
+    "UserId": "attacker@external.com",
+    "LogonError": "InvalidUsernameOrPassword",
+    "ExtendedProperties": [
+      { "Name": "UserAgent", "Value": "curl/7.68.0" }
+    ]
+  },
+
+  {
+    "CreationTime": "2025-10-29T08:16:45Z",
+    "Id": "33333333-cccc-dddd-eeee-000000000006",
+    "Operation": "FileAccessed",
+    "OrganizationId": "contoso.onmicrosoft.com",
+    "RecordType": 6,
+    "ResultStatus": "Success",
+    "UserKey": "NORMAL-KEY-1",
+    "UserType": 0,
+    "Version": 1,
+    "Workload": "SharePoint",
+    "ClientIP": "198.51.100.23",
+    "ObjectId": "https://contoso.sharepoint.com/sites/HR/Documents/Policy.docx",
+    "UserId": "jane.smith@contoso.com",
+    "SourceFileName": "Policy.docx",
+    "SourceRelativeUrl": "sites/HR/Documents",
+    "SiteUrl": "https://contoso.sharepoint.com/sites/HR"
+  },
+  {
+    "CreationTime": "2025-10-29T09:10:00Z",
+    "Id": "44444444-dddd-eeee-ffff-000000000007",
+    "Operation": "UserLoggedIn",
+    "OrganizationId": "contoso.onmicrosoft.com",
+    "RecordType": 15,
+    "ResultStatus": "Success",
+    "UserKey": "NORMAL-KEY-2",
+    "UserType": 0,
+    "Version": 1,
+    "Workload": "AzureActiveDirectory",
+    "ClientIP": "45.12.33.21",
+    "ObjectId": "john.doe@contoso.com",
+    "UserId": "john.doe@contoso.com",
+    "ExtendedProperties": [
+      { "Name": "UserAgent", "Value": "Mozilla/5.0" }
+    ]
+  },
+  {
+    "CreationTime": "2025-10-29T10:20:00Z",
+    "Id": "55555555-eeee-ffff-gggg-000000000008",
+    "Operation": "PasswordChange",
+    "OrganizationId": "contoso.onmicrosoft.com",
+    "RecordType": 15,
+    "ResultStatus": "Success",
+    "UserKey": "NORMAL-KEY-3",
+    "UserType": 0,
+    "Version": 1,
+    "Workload": "AzureActiveDirectory",
+    "ClientIP": "203.0.113.45",
+    "ObjectId": "john.doe@contoso.com",
+    "UserId": "john.doe@contoso.com"
+  }
+]
