@@ -9,9 +9,9 @@
 
 # LogNexus
 
-**Enterprise Security Event Correlation Platform**
+**Unified log ingestion and rca analysis**
 
-LogNexus is a microservice-based SIEM platform that ingests raw security log files from multiple sources, normalises and streams events through a 3-broker Kafka cluster, correlates them into a directed event graph (DEG) stored in Neo4j, enriches them with live threat intelligence, and surfaces the results through an interactive React dashboard featuring attack session clustering, kill-chain mapping, threat graph visualisation, and automated Root Cause Analysis (RCA) reports.
+LogNexus is a microservice-based SIEM platform that ingests raw security log files from multiple sources, normalises and streams events through Kafka cluster, correlates them into a directed event graph (DEG) stored in Neo4j, enriches them with live threat intelligence, and surfaces the results through an interactive React dashboard featuring attack session clustering, kill-chain mapping, threat graph visualisation, and automated Root Cause Analysis (RCA) reports.
 
 ---
 
@@ -379,25 +379,3 @@ curl http://localhost:8084/api/correlation/bundles
 ```
 
 ---
-
-## Stopping the Platform
-
-```bash
-# 1. Stop the UI — Ctrl+C in the npm terminal
-
-# 2. Stop the Java services — Ctrl+C in each mvnw terminal
-
-# 3. Stop Docker containers (data is preserved in named volumes)
-cd LogNexus-infra
-docker compose down
-
-# 4. To also delete ALL stored data (Neo4j graph, Kafka logs, Redis state):
-docker compose down -v
-```
-
----
-
-<p align="center">
-  <strong>Vulnuris Security Solutions</strong><br/>
-  Built with Spring Boot · Apache Kafka · Neo4j · Redis · React
-</p>
