@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ShieldAlert, Users, Wifi, Server, Clock, ChevronRight, Target } from 'lucide-react';
 import { getAttackSessions, listBundles } from '../api/correlationApi';
@@ -41,7 +41,7 @@ export default function Sessions() {
 
   const filteredSessions = sessions.filter(s => {
     if (!severityFilter) return true;
-    // Sessions returned by the backend don't include per-event arrays; use overall_severity/max_risk_score.
+
     const sevLabel = (s.overall_severity || '').toString().toUpperCase();
     return sevLabel === severityFilter;
   });
@@ -53,7 +53,7 @@ export default function Sessions() {
         <p>Correlated attack narratives from the Directed Event Graph</p>
       </div>
 
-      {/* Filters */}
+
       <div className="filter-bar">
         <div className="form-group">
           <label className="form-label">Bundle</label>
@@ -101,7 +101,7 @@ export default function Sessions() {
         </div>
       )}
 
-      {/* Session Cards */}
+
       {filteredSessions.map((session, idx) => {
         const eventsCount = session.event_count || 0;
         const avgSev = session.avg_severity || 0;
@@ -113,74 +113,153 @@ export default function Sessions() {
         const ttps = session.mitre_ttps || [];
 
         return (
-          <div key={idx} className="card session-card" style={{ marginBottom: 16 }}>
-            <div className="session-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <ShieldAlert size={20} style={{ color: 'var(--accent)' }} />
-                <span style={{ fontSize: 16, fontWeight: 700 }}>Attack Session #{idx + 1}</span>
-                <span className={`badge ${getSeverityClass(sevLabel)}`}>{sevLabel}</span>
+          <div key={idx} 
+            style={{ 
+              marginBottom: 24, 
+              padding: 24,
+              background: 'var(--bg-card)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid var(--border)',
+              borderLeft: `4px solid ${sevLabel === 'CRITICAL' ? 'var(--status-danger)' : sevLabel === 'HIGH' ? 'var(--status-warning)' : sevLabel === 'MEDIUM' ? 'var(--status-info)' : 'var(--accent)'}`,
+              borderRadius: '12px',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              boxShadow: 'var(--shadow-card)'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.border = '1px solid var(--border-hover)';
+              e.currentTarget.style.borderLeft = `4px solid ${sevLabel === 'CRITICAL' ? 'var(--status-danger)' : sevLabel === 'HIGH' ? 'var(--status-warning)' : sevLabel === 'MEDIUM' ? 'var(--status-info)' : 'var(--accent)'}`;
+              e.currentTarget.style.boxShadow = 'var(--shadow-card), var(--shadow-glow)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.border = '1px solid var(--border)';
+              e.currentTarget.style.borderLeft = `4px solid ${sevLabel === 'CRITICAL' ? 'var(--status-danger)' : sevLabel === 'HIGH' ? 'var(--status-warning)' : sevLabel === 'MEDIUM' ? 'var(--status-info)' : 'var(--accent)'}`;
+              e.currentTarget.style.boxShadow = 'var(--shadow-card)';
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ 
+                  background: 'var(--bg-hover-subtle)', 
+                  padding: 10, 
+                  borderRadius: 10,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <ShieldAlert size={22} style={{ color: sevLabel === 'CRITICAL' ? 'var(--status-danger)' : sevLabel === 'HIGH' ? 'var(--status-warning)' : sevLabel === 'MEDIUM' ? 'var(--status-info)' : 'var(--accent)' }} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, letterSpacing: '-0.3px', color: 'var(--text-primary)' }}>
+                    Attack Session #{idx + 1}
+                  </h3>
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500 }}>
+                    {eventsCount} correlated events
+                  </span>
+                </div>
               </div>
-              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{eventsCount} events</span>
+              <span className={`badge ${getSeverityClass(sevLabel)}`} style={{ padding: '6px 12px', fontSize: 11, fontWeight: 800, letterSpacing: '0.5px' }}>
+                {sevLabel}
+              </span>
             </div>
 
-            {/* Meta */}
-            <div className="session-meta">
+
+            <div style={{ 
+              display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 20,
+              background: 'var(--bg-surface)', padding: 16, borderRadius: 8, border: '1px solid var(--border)'
+            }}>
               {users.length > 0 && (
-                <div className="session-meta-item">
-                  <Users size={14} />
-                  <span className="value">{users.join(', ')}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)', fontSize: 13, minWidth: 150 }}>
+                  <Users size={15} style={{ color: 'var(--accent-purple)' }}/>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{users.join(', ')}</span>
                 </div>
               )}
               {ips.length > 0 && (
-                <div className="session-meta-item">
-                  <Wifi size={14} />
-                  <span className="value">{ips.slice(0, 3).join(', ')}{ips.length > 3 ? ` +${ips.length - 3}` : ''}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)', fontSize: 13, minWidth: 150 }}>
+                  <Wifi size={15} style={{ color: 'var(--accent-green)' }}/>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+                    {ips.slice(0, 3).join(', ')}{ips.length > 3 ? ` +${ips.length - 3}` : ''}
+                  </span>
                 </div>
               )}
               {hosts.length > 0 && (
-                <div className="session-meta-item">
-                  <Server size={14} />
-                  <span className="value">{hosts.slice(0, 2).join(', ')}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)', fontSize: 13, minWidth: 150 }}>
+                  <Server size={15} style={{ color: 'var(--accent)' }}/>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+                    {hosts.slice(0, 2).join(', ')}
+                  </span>
                 </div>
               )}
               {ttps.length > 0 && (
-                <div className="session-meta-item">
-                  <Target size={14} />
-                  <span className="value">{ttps.join(', ')}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)', fontSize: 13, minWidth: 150 }}>
+                  <Target size={15} style={{ color: 'var(--status-danger)' }}/>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{ttps.join(', ')}</span>
                 </div>
               )}
             </div>
 
-            {/* Kill Chain Pipeline */}
+
             {stages.length > 0 && (
-              <div className="kill-chain" style={{ marginBottom: 16 }}>
-                {KILL_CHAIN_ORDER.map((stage, i) => (
-                  <span key={stage}>
-                    {i > 0 && <span className="kill-chain-arrow" style={{ margin: '0 2px' }}>→</span>}
-                    <span className={`kill-chain-stage ${stages.includes(stage) ? 'active' : ''}`}>
-                      {stage.replace(/_/g, ' ')}
-                    </span>
-                  </span>
-                ))}
+              <div style={{ 
+                display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginBottom: 20,
+                background: 'var(--bg-hover-subtle)', padding: '12px 16px', borderRadius: 8, border: '1px solid var(--border)'
+              }}>
+                {KILL_CHAIN_ORDER.map((stage, i) => {
+                  const isActive = stages.includes(stage);
+                  return (
+                    <React.Fragment key={stage}>
+                      {i > 0 && <ChevronRight size={14} color={isActive ? 'var(--text-secondary)' : 'var(--text-muted)'} style={{ opacity: 0.5 }} />}
+                      <span style={{
+                        padding: '4px 10px', borderRadius: 4, fontSize: 11, fontWeight: 700, letterSpacing: '0.3px', textTransform: 'uppercase',
+                        background: isActive ? 'var(--accent-glow)' : 'transparent',
+                        color: isActive ? 'var(--accent)' : 'var(--text-muted)',
+                        border: isActive ? '1px solid var(--border-active)' : '1px solid transparent',
+                        transition: 'all 0.2s',
+                        boxShadow: isActive ? 'var(--shadow-glow)' : 'none'
+                      }}>
+                        {stage.replace(/_/g, ' ')}
+                      </span>
+                    </React.Fragment>
+                  );
+                })}
               </div>
             )}
 
-            {/* Narrative */}
+
             {session.narrative && (
-              <div style={{ marginTop: 8, padding: '12px', background: 'var(--bg-surface)', borderRadius: '6px', borderLeft: `3px solid var(--accent)`, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              <div style={{ 
+                marginTop: 8, padding: 16, background: 'var(--bg-surface)', borderRadius: 8, 
+                borderLeft: `3px solid var(--border-active)`, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, fontWeight: 400 
+              }}>
+                <div style={{ marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-primary)', fontWeight: 600, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  <ShieldAlert size={14} /> Automated Attack Narrative
+                </div>
                  {session.narrative}
               </div>
             )}
 
-            {/* Actions */}
-            <div style={{ marginTop: 12, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button className="btn btn-ghost" style={{ fontSize: 12, padding: '6px 12px' }}
-                onClick={() => navigate(`/graph/${selectedBundle}`)}>
-                View Graph
+
+            <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)', display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+              <button 
+                onClick={() => navigate(`/graph/${selectedBundle}`)}
+                style={{ 
+                  background: 'var(--bg-hover-subtle)', border: '1px solid var(--border)', color: 'var(--text-primary)',
+                  padding: '8px 16px', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-surface)'; e.currentTarget.style.border = '1px solid var(--border-hover)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-hover-subtle)'; e.currentTarget.style.border = '1px solid var(--border)'; }}
+              >
+                Explore on Threat Graph
               </button>
-              <button className="btn btn-ghost" style={{ fontSize: 12, padding: '6px 12px' }}
-                onClick={() => navigate(`/rca/${selectedBundle}`)}>
-                RCA Report
+              <button 
+                onClick={() => navigate(`/rca/${selectedBundle}`)}
+                style={{ 
+                  background: 'linear-gradient(135deg, var(--accent-purple), var(--accent))', border: 'none', color: '#ffffff',
+                  padding: '8px 16px', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = '0.9'; }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
+              >
+                Generate RCA
               </button>
             </div>
           </div>

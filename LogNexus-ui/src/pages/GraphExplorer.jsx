@@ -1,20 +1,46 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Network, X, Eye, EyeOff } from 'lucide-react';
+import { Network, X, Eye, EyeOff, Layers, Tag } from 'lucide-react';
 import { getGraphData, listBundles } from '../api/correlationApi';
 import { getNodeColor, getSeverityColor, formatTimestamp } from '../utils/helpers';
 import { useActiveBundle } from '../contexts/ActiveBundleContext.jsx';
+
+const KILL_CHAIN_Y = {
+  'Reconnaissance':       0.05,
+  'Weaponization':        0.13,
+  'Initial Access':       0.22,
+  'Execution':            0.31,
+  'Persistence':          0.40,
+  'Privilege Escalation': 0.49,
+  'Defense Evasion':      0.57,
+  'Credential Access':    0.64,
+  'Discovery':            0.71,
+  'Lateral Movement':     0.78,
+  'Collection':           0.84,
+  'Command & Control':    0.89,
+  'Exfiltration':         0.94,
+  'Impact':               0.99,
+};
+
+const KILL_CHAIN_COLORS = [
+  '#334155','#1e3a5f','#1e3a5f','#1e293b',
+  '#1a3a2e','#1a3a2e','#2d1f3d','#2d1f3d',
+  '#1a2e3a','#1a2e3a','#3a2a1a','#2a1a1a',
+  '#2a1a1a','#3a1a1a',
+];
 
 export default function GraphExplorer() {
   const { bundleId: paramBundle } = useParams();
   const [selectedBundle, setSelectedBundle] = useState(paramBundle || '');
   const [bundles, setBundles] = useState([]);
   const [graphData, setGraphData] = useState(null);
-  const [viewMode, setViewMode] = useState('STORY'); // STORY | FULL | ENTITY
-  const [layoutSpread, setLayoutSpread] = useState(2.6); // 0.8 .. 3.5
+  const [viewMode, setViewMode] = useState('STORY');
+  const [layoutSpread, setLayoutSpread] = useState(2.6);
   const [loading, setLoading] = useState(false);
   const [selectedNode, setSelectedNode] = useState(null);
   const [showEntityEdges, setShowEntityEdges] = useState(false);
+  const [showConfLabels, setShowConfLabels] = useState(true);
+  const [showKillChain, setShowKillChain] = useState(false);
   const [minConfidence, setMinConfidence] = useState(0.6);
   const canvasRef = useRef(null);
   const nodesRef = useRef([]);
@@ -22,7 +48,7 @@ export default function GraphExplorer() {
   const dragRef = useRef({ dragging: false, nodeId: null });
   const worldRef = useRef({ w: 800, h: 600, cx: 400, cy: 300, margin: 40 });
   const edgesRef = useRef([]);
-  const viewRef = useRef({ scale: 1, panX: 0, panY: 0 }); // screen-space pan (px)
+  const viewRef = useRef({ scale: 1, panX: 0, panY: 0 });
   const panRef = useRef({ panning: false, startX: 0, startY: 0, startPanX: 0, startPanY: 0 });
   const navigate = useNavigate();
   const { activeBundleId, setActiveBundleId } = useActiveBundle();
@@ -66,18 +92,16 @@ export default function GraphExplorer() {
     } else if (viewMode === 'ENTITY') {
       edges = rawEdges.filter(e => e.type !== 'LINKED');
     } else {
-      // FULL: include everything. (Confidence slider affects Story view primarily.)
+
       edges = rawEdges;
     }
 
-    // Only allow hiding entity edges in FULL mode.
-    // In STORY mode we already only show LINKED edges, and in ENTITY mode entity edges are the whole point.
+
     if (viewMode === 'FULL' && !showEntityEdges) {
       edges = edges.filter(e => e.type === 'LINKED');
     }
 
-    // Node filtering based on mode/edges.
-    // In FULL mode, keep all nodes (so even sparse edge sets still show context).
+
     let nodes = rawNodes;
     if (viewMode !== 'FULL') {
       const used = new Set();
@@ -89,7 +113,7 @@ export default function GraphExplorer() {
     }
     if (viewMode === 'ENTITY') {
       nodes = nodes.filter(n => n.type !== 'Event');
-      // Also drop any edges that still reference Event nodes (defensive)
+
       const entityIds = new Set(nodes.map(n => n.id));
       edges = edges.filter(e => entityIds.has(e.source) && entityIds.has(e.target));
     }
@@ -113,7 +137,7 @@ export default function GraphExplorer() {
     if (!data) return;
     edgesRef.current = data.edges || [];
     const nodeCount = data.nodes.length || 1;
-    // Expand the "world" as node count grows to avoid clamping piles at the edges.
+
     const baseW = 1200;
     const baseH = 900;
     const scale = Math.min(3.0, 1.0 + Math.log10(Math.max(10, nodeCount)) * 0.9) * layoutSpread;
@@ -154,14 +178,14 @@ export default function GraphExplorer() {
     const entityIdeal = 140 * modeFactor * layoutSpread;
 
     const tick = () => {
-      // Don't "freeze" mid-drag. If user is dragging, keep simulating.
+
       if (iterations >= maxIter && !dragRef.current.dragging) {
         drawGraph(nodes, edges);
         return;
       }
       iterations++;
 
-      // Repulsion
+
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
           const dx = nodes[j].x - nodes[i].x;
@@ -173,7 +197,7 @@ export default function GraphExplorer() {
           nodes[i].vx -= fx; nodes[i].vy -= fy;
           nodes[j].vx += fx; nodes[j].vy += fy;
 
-          // Collision avoidance (prevents stacking)
+
           const minDist = (nodes[i].radius || 12) + (nodes[j].radius || 12) + (viewMode === 'STORY' ? 24 : 38);
           if (dist < minDist) {
             const push = (minDist - dist) * 0.12;
@@ -185,7 +209,7 @@ export default function GraphExplorer() {
         }
       }
 
-      // Attraction along edges
+
       edges.forEach(edge => {
         const s = nodes.find(n => n.id === edge.source);
         const t = nodes.find(n => n.id === edge.target);
@@ -201,7 +225,18 @@ export default function GraphExplorer() {
         t.vx -= fx; t.vy -= fy;
       });
 
-      // Center gravity
+
+      if (showKillChain) {
+        const { h: worldH } = worldRef.current;
+        nodes.forEach(n => {
+          if (n.type !== 'Event' || !n.killChainStage) return;
+          const targetY = (KILL_CHAIN_Y[n.killChainStage] ?? 0.5) * worldH;
+
+          n.vy += (targetY - n.y) * 0.003;
+        });
+      }
+
+
       const gravity = 0.0008 / layoutSpread;
       const { cx, cy, w: worldW, h: worldH, margin } = worldRef.current;
       nodes.forEach(n => {
@@ -209,7 +244,7 @@ export default function GraphExplorer() {
         n.vy += (cy - n.y) * gravity;
         n.vx *= 0.85; n.vy *= 0.85;
         n.x += n.vx; n.y += n.vy;
-        // Clamp within expanded world bounds (prevents everything piling into a tiny 800x600 box)
+
         n.x = Math.max(margin, Math.min(worldW - margin, n.x));
         n.y = Math.max(margin, Math.min(worldH - margin, n.y));
       });
@@ -233,7 +268,24 @@ export default function GraphExplorer() {
 
     ctx.clearRect(0, 0, w, h);
 
-    // Draw edges
+    if (showKillChain) {
+      const stages = Object.entries(KILL_CHAIN_Y);
+      stages.forEach(([stage, yFrac], idx) => {
+        const nextFrac = stages[idx + 1]?.[1] ?? 1.0;
+        const bandY  = yFrac    * world.h * sy + panY;
+        const bandH  = (nextFrac - yFrac) * world.h * sy;
+
+        ctx.fillStyle = KILL_CHAIN_COLORS[idx % KILL_CHAIN_COLORS.length] + '55';
+        ctx.fillRect(0, bandY, w, bandH);
+
+        ctx.font = '10px Inter,sans-serif';
+        ctx.fillStyle = 'rgba(148,163,184,0.7)';
+        ctx.textAlign = 'left';
+        ctx.fillText(stage, 8, bandY + 13);
+      });
+    }
+
+
     edges.forEach(edge => {
       const s = nodes.find(n => n.id === edge.source);
       const t = nodes.find(n => n.id === edge.target);
@@ -250,23 +302,47 @@ export default function GraphExplorer() {
           : `rgba(148, 163, 184, ${0.2 + conf * 0.3})`;
         ctx.lineWidth = 1 + conf * 3;
       } else {
-        // Entity edges: keep them visually lighter than LINKED, but still visible in both themes.
+
         ctx.strokeStyle = 'rgba(100, 116, 139, 0.35)';
         ctx.lineWidth = 1.1;
         ctx.setLineDash([5, 4]);
       }
       ctx.stroke();
       ctx.setLineDash([]);
+
+      if (edge.type === 'LINKED' && showConfLabels && edge.confidence != null) {
+        const s = nodes.find(n => n.id === edge.source);
+        const t = nodes.find(n => n.id === edge.target);
+        if (s && t) {
+          const midX = (s.x * sx + panX + t.x * sx + panX) / 2;
+          const midY = (s.y * sy + panY + t.y * sy + panY) / 2;
+          const conf  = edge.confidence;
+          ctx.save();
+          ctx.font      = '9px Inter, monospace';
+          ctx.textAlign = 'center';
+          ctx.fillStyle = conf >= 0.65
+            ? `rgba(0,212,255,0.85)`
+            : `rgba(148,163,184,0.65)`;
+
+          const label = conf.toFixed(2);
+          const tw    = ctx.measureText(label).width;
+          ctx.fillStyle = 'rgba(15,23,42,0.7)';
+          ctx.fillRect(midX - tw / 2 - 3, midY - 8, tw + 6, 12);
+          ctx.fillStyle = conf >= 0.65 ? '#00d4ff' : '#94a3b8';
+          ctx.fillText(label, midX, midY + 2);
+          ctx.restore();
+        }
+      }
     });
 
-    // Draw nodes
+
     nodes.forEach(n => {
       const x = n.x * sx + panX;
       const y = n.y * sy + panY;
       const r = n.radius || 12;
       const color = n.type === 'Event' ? getSeverityColor(n.severity || 0) : getNodeColor(n.type);
 
-      // Glow
+
       ctx.beginPath();
       const gradient = ctx.createRadialGradient(x, y, 0, x, y, r * 2.5);
       gradient.addColorStop(0, color + '30');
@@ -275,7 +351,7 @@ export default function GraphExplorer() {
       ctx.arc(x, y, r * 2.5, 0, Math.PI * 2);
       ctx.fill();
 
-      // Node body
+
       ctx.beginPath();
       ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.fillStyle = color;
@@ -284,7 +360,7 @@ export default function GraphExplorer() {
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // Label (Dynamic Theme Text)
+
       const computed = getComputedStyle(document.documentElement);
       const textPrimary = computed.getPropertyValue('--text-primary').trim() || '#e2e8f0';
       
@@ -294,13 +370,13 @@ export default function GraphExplorer() {
       const label = n.label || n.id || '';
       ctx.fillText(label.length > 18 ? label.slice(0, 16) + '..' : label, x, y + r + 14);
     });
-  }, []);
+  }, [showConfLabels, showKillChain]);
 
   useEffect(() => {
     if (graphData && nodesRef.current.length > 0) {
       drawGraph(nodesRef.current, graphData.edges);
     }
-  }, [showEntityEdges, minConfidence, drawGraph, graphData]);
+  }, [showEntityEdges, minConfidence, showConfLabels, showKillChain, drawGraph, graphData]);
 
   const handleCanvasClick = (e) => {
     const canvas = canvasRef.current;
@@ -321,7 +397,7 @@ export default function GraphExplorer() {
   };
 
   const canvasToGraph = (canvas, mx, my) => {
-    // mx/my are canvas pixels; convert into graph coords (0..world.w / 0..world.h)
+
     const { scale, panX, panY } = viewRef.current;
     const sx = (canvas.width / worldRef.current.w) * scale;
     const sy = (canvas.height / worldRef.current.h) * scale;
@@ -343,10 +419,10 @@ export default function GraphExplorer() {
   };
 
   const handlePointerDown = (e) => {
-    // Pan if user clicks empty space; drag node if click hits node.
+
     const node = pickNodeAt(e.clientX, e.clientY);
     if (node) {
-      // Ensure simulation is running so connected nodes respond while dragging.
+
       if (!animRef.current) {
         runSimulation(nodesRef.current, edgesRef.current);
       }
@@ -503,6 +579,29 @@ export default function GraphExplorer() {
         >
           {showEntityEdges ? <Eye size={14} /> : <EyeOff size={14} />} Entity Edges
         </button>
+
+        <button
+          className={`btn ${showConfLabels ? 'btn-secondary' : 'btn-ghost'}`}
+          onClick={() => setShowConfLabels(v => !v)}
+          style={{ fontSize: 12 }}
+          title="Toggle confidence score labels on LINKED edges"
+        >
+          <Tag size={14} /> Conf Labels
+        </button>
+
+        <button
+          className={`btn ${showKillChain ? 'btn-secondary' : 'btn-ghost'}`}
+          onClick={() => {
+            setShowKillChain(v => !v);
+            // Re-run simulation so lane spring forces take effect immediately
+            if (nodesRef.current.length > 0) runSimulation(nodesRef.current, edgesRef.current);
+          }}
+          style={{ fontSize: 12 }}
+          title="Overlay MITRE kill chain stage lanes and group nodes by stage"
+          disabled={viewMode === 'ENTITY'}
+        >
+          <Layers size={14} /> Kill Chain
+        </button>
       </div>
 
       {loading && <div className="loading-container"><div className="loading-spinner" /><p>Loading graph...</p></div>}
@@ -515,7 +614,7 @@ export default function GraphExplorer() {
         </div>
       )}
 
-      {/* Legend + Stats (above graph box) */}
+
       {!loading && graphData && (
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 12, alignItems: 'center' }}>
           <div className="graph-legend" style={{ position: 'static' }}>
@@ -546,7 +645,7 @@ export default function GraphExplorer() {
             style={{ width: '100%', height: '100%', cursor: dragRef.current.dragging ? 'grabbing' : 'grab' }}
           />
 
-          {/* Inspector */}
+
           {selectedNode && (
             <div className="inspector-panel">
               <h3>

@@ -1,5 +1,5 @@
 import { Routes, Route, NavLink, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Upload, Network, ShieldAlert, FileText, Moon, Sun, Database, ListOrdered } from 'lucide-react';
+import { LayoutDashboard, Upload, Network, ShieldAlert, FileText, Moon, Sun, Database, ListOrdered, Clock } from 'lucide-react';
 import Dashboard from './pages/Dashboard.jsx';
 import Ingest from './pages/Ingest.jsx';
 import Sessions from './pages/Sessions.jsx';
@@ -7,6 +7,7 @@ import GraphExplorer from './pages/GraphExplorer.jsx';
 import RcaReport from './pages/RcaReport.jsx';
 import BundleManager from './pages/BundleManager.jsx';
 import LogExplorer from './pages/LogExplorer.jsx';
+import TimelineView from './pages/TimelineView.jsx';
 import { useTheme } from './contexts/ThemeContext.jsx';
 
 export default function App() {
@@ -37,8 +38,9 @@ export default function App() {
       category: 'Threat Intelligence (Correlation)',
       items: [
         { path: '/sessions', icon: ShieldAlert, label: 'Attack Sessions' },
-        { path: '/graph', icon: Network, label: 'Threat Graph' },
-        { path: '/rca', icon: FileText, label: 'RCA Reports' },
+        { path: '/timeline', icon: Clock,       label: 'Attack Timeline' },
+        { path: '/graph',    icon: Network,     label: 'Threat Graph' },
+        { path: '/rca',      icon: FileText,    label: 'RCA Reports' },
       ],
     }
   ];
@@ -110,6 +112,8 @@ export default function App() {
           <Route path="/explorer" element={<LogExplorer />} />
           <Route path="/sessions" element={<Sessions />} />
           <Route path="/sessions/:bundleId" element={<Sessions />} />
+          <Route path="/timeline" element={<TimelineView />} />
+          <Route path="/timeline/:bundleId" element={<TimelineView />} />
           <Route path="/graph" element={<GraphExplorer />} />
           <Route path="/graph/:bundleId" element={<GraphExplorer />} />
           <Route path="/rca" element={<RcaReport />} />

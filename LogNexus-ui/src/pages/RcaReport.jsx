@@ -152,7 +152,7 @@ export default function RcaReport() {
         </div>
       )}
 
-      {/* Actual Report Content */}
+
       {!loading && reportData && (
         <div className="card" style={{ padding: '40px 48px', maxWidth: 1000, margin: '0 auto', background: 'var(--bg-primary)' }}>
           
@@ -166,7 +166,7 @@ export default function RcaReport() {
             </div>
           </div>
 
-          {/* Exec Summary */}
+
           <section className="rca-section">
             <h3>Executive Summary</h3>
             <p style={{ color: 'var(--text-primary)', lineHeight: 1.6, fontSize: 14 }}>
@@ -177,12 +177,12 @@ export default function RcaReport() {
             </p>
           </section>
 
-          {/* Affected Assets */}
+
           <section className="rca-section">
             <h3>Affected Assets</h3>
             <div className="card-grid card-grid-3">
               
-              {/* Users */}
+
               <div className="card" style={{ padding: 16 }}>
                 <div style={{ display: 'flex', gap: 8, color: 'var(--text-secondary)', marginBottom: 12, alignItems: 'center' }}>
                   <Users size={16} /> <span style={{ fontWeight: 600 }}>Compromised Users</span>
@@ -199,7 +199,7 @@ export default function RcaReport() {
                 ) : <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>None identified</div>}
               </div>
 
-              {/* Hosts */}
+
               <div className="card" style={{ padding: 16 }}>
                 <div style={{ display: 'flex', gap: 8, color: 'var(--text-secondary)', marginBottom: 12, alignItems: 'center' }}>
                   <Cpu size={16} /> <span style={{ fontWeight: 600 }}>Affected Hosts</span>
@@ -216,7 +216,7 @@ export default function RcaReport() {
                 ) : <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>None identified</div>}
               </div>
 
-              {/* IPs */}
+
               <div className="card" style={{ padding: 16 }}>
                 <div style={{ display: 'flex', gap: 8, color: 'var(--text-secondary)', marginBottom: 12, alignItems: 'center' }}>
                   <Wifi size={16} /> <span style={{ fontWeight: 600 }}>External Actor IPs</span>
@@ -236,7 +236,7 @@ export default function RcaReport() {
             </div>
           </section>
 
-          {/* Timeline */}
+
           <section className="rca-section">
             <h3>Chronological Incident Timeline</h3>
             {reportData.timelineTruncated && (
@@ -272,7 +272,7 @@ export default function RcaReport() {
             </div>
           </section>
 
-          {/* IOCs list if present */}
+
           {reportData.iocs?.length > 0 && (
             <section className="rca-section">
               <h3>Identified Indicators of Compromise (IOCs)</h3>
@@ -290,7 +290,7 @@ export default function RcaReport() {
             </section>
           )}
 
-          {/* Suggested Actions */}
+
           <section className="rca-section" style={{ borderTop: '1px solid var(--border)', paddingTop: 32 }}>
             <h3>Recommended Mitigation Actions</h3>
             <ul style={{ color: 'var(--text-primary)', fontSize: 14, lineHeight: 1.8, paddingLeft: 20 }}>

@@ -1,15 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { UploadCloud, CheckCircle2, Server, Layers, Trash2, RefreshCw, AlertCircle, FileText, XCircle } from 'lucide-react';
+import { UploadCloud, CheckCircle2, Server, Layers, Trash2, RefreshCw, AlertCircle, FileText, XCircle, Filter, ShieldOff } from 'lucide-react';
 import axios from 'axios';
 
-// ── Backend URL ─────────────────────────────────────────────────────────────
-// The Ingestion Microservice runs on port 8081 (see application.properties)
 const BACKEND_URL = 'http://localhost:8081';
 const PERSIST_KEY = 'lognexus.ingest.lastRun';
 
 export default function Ingest() {
   const [files, setFiles] = useState([]);
-  const [uploadedFiles, setUploadedFiles] = useState([]); // Track completed uploads
+  const [uploadedFiles, setUploadedFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [overallProgress, setOverallProgress] = useState(0);
   const [currentFileIndex, setCurrentFileIndex] = useState(-1);
@@ -17,14 +15,34 @@ export default function Ingest() {
   const [dragOver, setDragOver] = useState(false);
   const [result, setResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
-  const [fileStatuses, setFileStatuses] = useState({}); // per-file: 'pending' | 'uploading' | 'done' | 'error'
-  const [trace, setTrace] = useState([]); // [{ ts, msg }]
-  const [streamState, setStreamState] = useState('idle'); // 'idle' | 'connecting' | 'connected' | 'disconnected'
+  const [fileStatuses, setFileStatuses] = useState({});
+  const [trace, setTrace] = useState([]);
+  const [streamState, setStreamState] = useState('idle');
   const [corrState, setCorrState] = useState({ phase: 'idle', eventCount: 0, lastEvent: null });
+
+  const [excludedSources, setExcludedSources] = useState(new Set());
   const fileRef = useRef(null);
   const abortControllerRef = useRef(null);
   const sseRef = useRef(null);
   const corrPollRef = useRef(null);
+
+
+  const SOURCE_TYPE_OPTIONS = [
+    { id: 'AWS',       label: 'AWS CloudTrail',     desc: 'CloudTrail API activity and management events' },
+    { id: 'O365',      label: 'O365 Audit',         desc: 'Office 365 Unified Audit Log events' },
+    { id: 'PaloAlto',  label: 'Palo Alto',          desc: 'Palo Alto Networks firewall traffic/threat logs' },
+    { id: 'syslog',    label: 'Syslog',             desc: 'RFC 5424 syslog messages (Linux, network devices)' },
+    { id: 'WEB',       label: 'Webserver Access',   desc: 'Apache / Nginx / IIS access logs (Combined Log Format)' },
+    { id: 'WINDOWS',   label: 'Windows Security',   desc: 'Windows Security Event Log (4624, 4625, 4688, etc.)' },
+  ];
+
+  const toggleExclude = (id) => {
+    setExcludedSources(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
   const bundleId = result?.bundleId || '';
 
@@ -38,7 +56,7 @@ export default function Ingest() {
     setTrace(prev => [...prev.slice(-249), line]);
   };
 
-  // Restore last run when returning to this page
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem(PERSIST_KEY);
@@ -63,7 +81,7 @@ export default function Ingest() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Persist last run so users don't lose status on navigation
+
   useEffect(() => {
     try {
       if (!bundleId) return;
@@ -80,11 +98,11 @@ export default function Ingest() {
     }
   }, [bundleId, trace, corrState, errorMsg]);
 
-  // SSE: follow ingestion progress for the bundleId
+
   useEffect(() => {
     if (!bundleId) return;
 
-    // Cleanup prior stream/poll
+
     if (sseRef.current) {
       try { sseRef.current.close(); } catch {}
       sseRef.current = null;
@@ -123,7 +141,7 @@ export default function Ingest() {
       try { es.close(); } catch {}
     };
 
-    // Correlation poll: stop the "indefinite wait" by showing persistence state.
+
     corrPollRef.current = setInterval(async () => {
       try {
         const r = await correlationApi.get(`/bundles/${bundleId}/status`);
@@ -139,7 +157,6 @@ export default function Ingest() {
           corrPollRef.current = null;
         }
       } catch {
-        // keep polling; correlation service might be starting
       }
     }, 2000);
 
@@ -181,7 +198,6 @@ export default function Ingest() {
     setErrorMsg('');
     const newFiles = Array.from(incomingFiles);
 
-    // Create sets for O(1) lookups
     const existingIds = new Set(files.map(getFileIdentifier));
     const uploadedIds = new Set(uploadedFiles.map(getFileIdentifier));
 
@@ -192,7 +208,7 @@ export default function Ingest() {
         return false;
       }
       if (existingIds.has(id)) {
-        return false; // Already staged
+        return false;
       }
       return true;
     });
@@ -207,7 +223,6 @@ export default function Ingest() {
   const handleFileSelect = (e) => {
     if (e.target.files) {
       processIncomingFiles(e.target.files);
-      // Reset so the same files can be re-selected if removed
       e.target.value = '';
     }
   };
@@ -258,27 +273,34 @@ export default function Ingest() {
     setCorrState({ phase: 'idle', eventCount: 0, lastEvent: null });
     setErrorMsg('');
 
-    // Compute total size for accurate overall progress
+
     const totalSize = files.reduce((sum, f) => sum + f.size, 0);
     let uploadedSize = 0;
 
-    // Initialise every file as 'pending'
+
     const initialStatuses = {};
     files.forEach((f, i) => { initialStatuses[i] = 'pending'; });
     setFileStatuses(initialStatuses);
 
-    // Create an AbortController so the user could cancel in the future
+
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    // Build a single FormData with all files (backend expects them together)
+
     const formData = new FormData();
     files.forEach(file => {
       formData.append('files', file);
     });
 
+
+    if (excludedSources.size > 0) {
+      const exclusionList = [...excludedSources].join(',');
+      formData.append('excludeSources', exclusionList);
+      appendTrace(`🚫 Excluding source types: ${exclusionList}`);
+    }
+
     try {
-      // Mark all files as uploading
+
       const uploadingStatuses = {};
       files.forEach((_, i) => { uploadingStatuses[i] = 'uploading'; });
       setFileStatuses(uploadingStatuses);
@@ -289,13 +311,13 @@ export default function Ingest() {
           'Content-Type': 'multipart/form-data',
         },
         signal: controller.signal,
-        // Increase timeout for large uploads (5 min)
+
         timeout: 300000,
         onUploadProgress: (progressEvent) => {
           const loaded = progressEvent.loaded || 0;
           const total = progressEvent.total || totalSize;
 
-          // Calculate which file we're currently on based on bytes loaded
+
           let accumulated = 0;
           let activeIndex = 0;
           for (let i = 0; i < files.length; i++) {
@@ -307,16 +329,16 @@ export default function Ingest() {
               break;
             }
           }
-          // Clamp to valid range
+
           activeIndex = Math.min(activeIndex, files.length - 1);
           setCurrentFileIndex(activeIndex);
 
-          // Per-file progress for the active file
+
           const fileLoaded = Math.max(0, loaded - accumulated);
           const fileTotal = files[activeIndex]?.size || 1;
           setCurrentFileProgress(Math.min(100, Math.round((fileLoaded * 100) / fileTotal)));
 
-          // Update per-file statuses
+
           setFileStatuses(prev => {
             const next = { ...prev };
             for (let i = 0; i < files.length; i++) {
@@ -327,13 +349,13 @@ export default function Ingest() {
             return next;
           });
 
-          // Overall progress based on actual bytes
+
           const percent = Math.min(100, Math.round((loaded * 100) / total));
           setOverallProgress(percent);
         },
       });
 
-      // Mark all files as done
+
       const doneStatuses = {};
       files.forEach((_, i) => { doneStatuses[i] = 'done'; });
       setFileStatuses(doneStatuses);
@@ -341,7 +363,7 @@ export default function Ingest() {
       setCurrentFileProgress(100);
 
       setResult(res.data);
-      // Mark these as uploaded
+
       setUploadedFiles(prev => [...prev, ...files]);
       setFiles([]);
     } catch (err) {
@@ -351,7 +373,7 @@ export default function Ingest() {
       }
       console.error('Upload Error:', err);
 
-      // Better error messages for common issues
+
       let errMsgString;
       if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
         errMsgString = `Cannot connect to the Ingestion Service at ${BACKEND_URL}. Make sure the backend is running on port 8081.`;
@@ -362,7 +384,7 @@ export default function Ingest() {
         errMsgString = typeof backendError === 'string' ? backendError : JSON.stringify(backendError);
       }
 
-      // Mark remaining files as error
+
       setFileStatuses(prev => {
         const next = { ...prev };
         for (let i = 0; i < files.length; i++) {
@@ -392,7 +414,7 @@ export default function Ingest() {
     <div style={{ padding: '32px', height: '100%', display: 'flex', flexDirection: 'column' }}>
 
 
-      {/* Header Block */}
+
       <div style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -417,7 +439,7 @@ export default function Ingest() {
         </div>
       )}
 
-      {/* Upload Zone */}
+
       <div
         onClick={() => !uploading && fileRef.current?.click()}
         onDragOver={e => { e.preventDefault(); setDragOver(true); }}
@@ -447,7 +469,67 @@ export default function Ingest() {
         />
       </div>
 
-      {/* Selected Files Staging */}
+
+      <div style={{
+        background: 'var(--bg-card)', border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-md)', padding: '20px 24px', marginBottom: '24px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Filter size={16} color="var(--accent)" />
+            <span style={{ fontWeight: 600, fontSize: 14 }}>Source Exclusion Filters</span>
+            {excludedSources.size > 0 && (
+              <span style={{
+                background: 'var(--status-danger-bg)', color: 'var(--status-danger)',
+                border: '1px solid var(--status-danger-border)', borderRadius: 20,
+                padding: '1px 10px', fontSize: 11, fontWeight: 700
+              }}>
+                {excludedSources.size} excluded
+              </span>
+            )}
+          </div>
+          {excludedSources.size > 0 && (
+            <button
+              onClick={() => setExcludedSources(new Set())}
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer' }}
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+        <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 14 }}>
+          Toggle source types to exclude from ingestion. Excluded events are dropped at parse time — never sent to Kafka.
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {SOURCE_TYPE_OPTIONS.map(opt => {
+            const isExcluded = excludedSources.has(opt.id);
+            return (
+              <button
+                key={opt.id}
+                onClick={() => toggleExclude(opt.id)}
+                disabled={uploading}
+                title={opt.desc}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+                  cursor: uploading ? 'not-allowed' : 'pointer', transition: 'all 0.18s',
+                  background: isExcluded ? 'var(--status-danger-bg)' : 'var(--bg-surface)',
+                  color:      isExcluded ? 'var(--status-danger)'    : 'var(--text-secondary)',
+                  border:     isExcluded
+                    ? '1px solid var(--status-danger-border)'
+                    : '1px solid var(--border)',
+                  opacity: uploading ? 0.5 : 1,
+                }}
+              >
+                {isExcluded && <ShieldOff size={11} />}
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+
       {files.length > 0 && (
         <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', padding: '24px', marginBottom: '24px', border: '1px solid var(--border)' }}>
           <h4 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
@@ -522,7 +604,7 @@ export default function Ingest() {
         </div>
       )}
 
-      {/* Result Card */}
+
       {result && result.status === 'SUCCESS' && (
         <div style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid var(--border-active)', padding: '24px', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-primary)', fontWeight: 600, fontSize: '16px' }}>
@@ -538,7 +620,7 @@ export default function Ingest() {
             </div>
           )}
 
-          {/* Live trace + correlation status */}
+
           {result.bundleId && (
             <div style={{ marginTop: '14px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>

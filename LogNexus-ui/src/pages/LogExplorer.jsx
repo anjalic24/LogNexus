@@ -1,16 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Calendar, Activity, Database, Download, RefreshCw, AlertTriangle, AlertCircle } from 'lucide-react';
-import { listBundles } from '../api/correlationApi';
-import axios from 'axios';
+import { Search, Filter, Calendar, Activity, Database, Download, RefreshCw, AlertTriangle, AlertCircle, ChevronDown } from 'lucide-react';
+import { listBundles, getEvents } from '../api/correlationApi';
 import '../index.css';
 import { useActiveBundle } from '../contexts/ActiveBundleContext.jsx';
 
-// The correlation service exposes events via proxy at /api/correlation
-const eventsApi = axios.create({
-  baseURL: '/api/correlation',
-  timeout: 30000,
-  headers: { 'Content-Type': 'application/json' }
-});
+const PAGE_SIZE = 200;
 
 export default function LogExplorer() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,10 +13,13 @@ export default function LogExplorer() {
   const [selectedBundle, setSelectedBundle] = useState('');
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
+  const [currentPage, setCurrentPage] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const { activeBundleId, setActiveBundleId } = useActiveBundle();
 
-  // Fetch available bundles on mount
+
   useEffect(() => {
     listBundles()
       .then(r => setBundles(r.data || []))
@@ -32,32 +29,40 @@ export default function LogExplorer() {
   useEffect(() => {
     if (!selectedBundle && activeBundleId) {
       setSelectedBundle(activeBundleId);
-      fetchEvents(activeBundleId);
+      fetchEvents(activeBundleId, 0, true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeBundleId]);
 
-  // Fetch events when a bundle is selected
-  const fetchEvents = (bundleId) => {
+
+
+
+  const fetchEvents = (bundleId, page = 0, reset = true) => {
     if (!bundleId) return;
-    setLoading(true);
+    reset ? setLoading(true) : setLoadingMore(true);
     setError('');
-    eventsApi.get(`/events/${bundleId}`)
+    getEvents(bundleId, page, PAGE_SIZE)
       .then(r => {
-        setLogs(Array.isArray(r.data) ? r.data : []);
+        const incoming = Array.isArray(r.data) ? r.data : [];
+        setLogs(prev => reset ? incoming : [...prev, ...incoming]);
+        setCurrentPage(page);
+
+        setHasMore(incoming.length === PAGE_SIZE);
       })
       .catch(err => {
         console.error('Failed to fetch events:', err);
         setError('Failed to load events. Make sure the Correlation Service is running and the bundle has processed events.');
-        setLogs([]);
+        if (reset) setLogs([]);
       })
-      .finally(() => setLoading(false));
+      .finally(() => { setLoading(false); setLoadingMore(false); });
   };
 
   const handleBundleChange = (bundleId) => {
     setSelectedBundle(bundleId);
     setActiveBundleId(bundleId);
-    if (bundleId) fetchEvents(bundleId);
+    setCurrentPage(0);
+    setHasMore(false);
+    if (bundleId) fetchEvents(bundleId, 0, true);
     else setLogs([]);
   };
 
@@ -80,14 +85,34 @@ export default function LogExplorer() {
     }
   };
 
+
+
+
+  const getSeverityScore = (label) => {
+    switch (label) {
+      case 'CRITICAL': return 4;
+      case 'HIGH':     return 3;
+      case 'MEDIUM':   return 2;
+      case 'LOW':      return 1;
+      default:         return 0; // INFO
+    }
+  };
+
   const filteredLogs = logs.filter(log => {
     const logAction = log.action || log.eventType || '';
     const logSource = log.sourceHost || log.sourceIp || '';
-    const matchesSearch = logAction.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          logSource.toLowerCase().includes(searchTerm.toLowerCase());
-    
+    const matchesSearch = !searchTerm ||
+      logAction.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      logSource.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (log.message || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (log.attckTtp || '').toLowerCase().includes(searchTerm.toLowerCase());
+
     const logSev = typeof log.severity === 'number' ? getSeverityLabel(log.severity) : (log.severity || 'INFO');
-    const matchesSev = severityFilter === 'ALL' || logSev === severityFilter;
+
+
+    const matchesSev = severityFilter === 'ALL' ||
+      getSeverityScore(logSev) >= getSeverityScore(severityFilter);
+
     return matchesSearch && matchesSev;
   });
 
@@ -118,7 +143,7 @@ export default function LogExplorer() {
       style={{ padding: '32px', height: '100%', display: 'flex', flexDirection: 'column', color: 'var(--text-primary)' }}
     >
       
-      {/* Header Block */}
+
       <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -130,7 +155,7 @@ export default function LogExplorer() {
         
         <div style={{ display: 'flex', gap: '12px' }}>
           <button 
-            onClick={() => selectedBundle && fetchEvents(selectedBundle)}
+            onClick={() => selectedBundle && fetchEvents(selectedBundle, 0, true)}
             style={{ 
               background: 'var(--bg-surface)', border: '1px solid var(--border)', padding: '10px 16px',
               borderRadius: 'var(--radius-sm)', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', transition: '0.2s'
@@ -157,7 +182,7 @@ export default function LogExplorer() {
         </div>
       )}
 
-      {/* Advanced Filters Block */}
+
       <div style={{ 
         background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', 
         padding: '16px', marginBottom: '24px', display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap'
@@ -166,7 +191,7 @@ export default function LogExplorer() {
           <Filter size={18} /> Filters:
         </div>
 
-        {/* Bundle Selector */}
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-input)', border: '1px solid var(--border)', padding: '6px', borderRadius: 'var(--radius-sm)' }}>
           <Database size={16} color="var(--text-muted)" style={{ marginLeft: '8px' }} />
           <select 
@@ -181,7 +206,7 @@ export default function LogExplorer() {
           </select>
         </div>
 
-        {/* Search */}
+
         <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
           <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
           <input 
@@ -196,7 +221,7 @@ export default function LogExplorer() {
           />
         </div>
 
-        {/* Severity Filter */}
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-input)', border: '1px solid var(--border)', padding: '6px', borderRadius: 'var(--radius-sm)' }}>
           <AlertTriangle size={16} color="var(--text-muted)" style={{ marginLeft: '8px' }}/>
           <select 
@@ -213,12 +238,12 @@ export default function LogExplorer() {
         </div>
       </div>
 
-      {/* Loading */}
+
       {loading && (
         <div className="loading-container"><div className="loading-spinner" /><p>Loading events...</p></div>
       )}
 
-      {/* Empty state — no bundle selected */}
+
       {!loading && !selectedBundle && (
         <div className="empty-state">
           <Database size={48} style={{ opacity: 0.3, marginBottom: 16 }} />
@@ -227,7 +252,7 @@ export default function LogExplorer() {
         </div>
       )}
 
-      {/* Main Data Grid */}
+
       {!loading && selectedBundle && (
         <>
           <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', flex: 1, overflow: 'auto', color: 'var(--text-primary)' }}>
@@ -286,9 +311,25 @@ export default function LogExplorer() {
             )}
           </div>
 
-          {/* Footer */}
-          <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', fontSize: '13px' }}>
-            <span>Showing {filteredLogs.length} of {logs.length} events</span>
+
+          <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+            <span>Showing {filteredLogs.length} of {logs.length} events (page {currentPage + 1})</span>
+            {hasMore && (
+              <button
+                onClick={() => fetchEvents(selectedBundle, currentPage + 1, false)}
+                disabled={loadingMore}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  background: 'var(--bg-surface)', border: '1px solid var(--border)',
+                  padding: '8px 16px', borderRadius: 'var(--radius-sm)',
+                  color: 'var(--text-primary)', cursor: loadingMore ? 'not-allowed' : 'pointer',
+                  opacity: loadingMore ? 0.6 : 1, fontWeight: 600, fontSize: '13px'
+                }}
+              >
+                <ChevronDown size={14} />
+                {loadingMore ? 'Loading...' : `Load next ${PAGE_SIZE}`}
+              </button>
+            )}
           </div>
         </>
       )}

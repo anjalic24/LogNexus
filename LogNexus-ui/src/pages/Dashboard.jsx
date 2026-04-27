@@ -32,7 +32,7 @@ export default function Dashboard() {
         <p>Correlation Engine</p>
       </div>
 
-      {/* Status + Stats */}
+
       <div className="card-grid card-grid-4" style={{ marginBottom: 24 }}>
         <div className="card">
           <div className="stat-card">
@@ -78,7 +78,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Bundles Table */}
+
       <div className="card">
         <h3 style={{ marginBottom: 16, fontSize: 16, fontWeight: 600 }}>Recent Bundles</h3>
         {bundles.length === 0 ? (
