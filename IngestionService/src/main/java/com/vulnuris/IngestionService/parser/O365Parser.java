@@ -64,7 +64,7 @@ public class O365Parser implements LogParser {
         try {
             if (log == null) return null;
 
-            // ---------- Core ----------
+
             String eventId = getOrGenerateId(log);
             String tsOriginal = safeString(log.get("CreationTime"));
             Instant tsUtc = parseTime(tsOriginal);
@@ -78,24 +78,24 @@ public class O365Parser implements LogParser {
 
             String result = safeString(log.get("ResultStatus"));
 
-            // ---------- Message ----------
+
             String message = buildMessage(log, user, action, srcIp);
 
-            // ---------- SEVERITY ----------
+
             double severityScore = o365SeverityService.calculateSeverity(log);
             String severity = o365SeverityService.toSeverityLabel(severityScore);
 
-            // ---------- IOC ----------
+
             List<String> iocs = extractIocs(log, srcIp);
 
-            // ---------- Correlation ----------
+
             Map<String, String> correlation = new HashMap<>();
             putIfNotNull(correlation, "user", user);
             putIfNotNull(correlation, "srcIp", srcIp);
             putIfNotNull(correlation, "operation", action);
             putIfNotNull(correlation, "workload", workload);
 
-            // ---------- Extra ----------
+
             boolean isInternalIp = isInternalIp(srcIp);
             Map<String, Object> extra = new HashMap<>();
             putIfNoNull(extra, "o365WorkLoad", workload);
@@ -116,7 +116,7 @@ public class O365Parser implements LogParser {
 
             putIfNoNull(extra, "isInternalIP", isInternalIp);
 
-            // ---------- Build ----------
+
             return CesEvent.builder()
                     .eventId(eventId)
 
@@ -158,7 +158,7 @@ public class O365Parser implements LogParser {
         }
     }
 
-    // ================= HELPERS =================
+
 
     private String getOrGenerateId(Map<String, Object> log) {
         String id = safeString(log.get("Id"));
@@ -172,7 +172,7 @@ public class O365Parser implements LogParser {
     private Instant parseTime(String time) {
         try {
             if (time == null) return Instant.now();
-            return Instant.parse(time); // already UTC in logs
+            return Instant.parse(time);
         } catch (Exception e) {
             return Instant.now();
         }
@@ -182,7 +182,7 @@ public class O365Parser implements LogParser {
         String ip = safeString(log.get("ClientIP"));
         if (ip == null) return null;
 
-        // Sometimes IP comes like "IP:Port"
+
         if (ip.contains(":")) {
             return ip.split(":")[0];
         }
@@ -191,12 +191,12 @@ public class O365Parser implements LogParser {
 
     private String extractObject(Map<String, Object> log) {
 
-        // Mailbox events → folders
+
         if (log.containsKey("Folders")) {
             return log.get("Folders").toString();
         }
 
-        // Default → ObjectId
+
         return safeString(log.get("ObjectId"));
     }
 
@@ -204,20 +204,20 @@ public class O365Parser implements LogParser {
 
         Set<String> iocSet = new LinkedHashSet<>();
 
-        // ---------- IP ----------
+
         String normalizedIp = normalizeIoc(srcIp);
         if (normalizedIp != null && !normalizedIp.isBlank()) {
             iocSet.add(normalizedIp);
         }
 
-        // ---------- User ----------
+
         String user = safeString(log.get("UserId"));
         String normalizedUser = normalizeIoc(user);
         if (normalizedUser != null && normalizedUser.contains("@")) {
             iocSet.add(normalizedUser);
         }
 
-        // ---------- Object ----------
+
         String object = safeString(log.get("ObjectId"));
         String normalizedObject = normalizeIoc(object);
         if (normalizedObject != null) {
@@ -227,14 +227,14 @@ public class O365Parser implements LogParser {
             }
         }
 
-        // ---------- SiteUrl ----------
+
         String siteUrl = safeString(log.get("SiteUrl"));
         String normalizedUrl = normalizeIoc(siteUrl);
         if (normalizedUrl != null && isUrl(normalizedUrl)) {
             iocSet.add(normalizedUrl);
         }
 
-        // ---------- ExtendedProperties ----------
+
         Object ext = log.get("ExtendedProperties");
 
         if (ext instanceof List<?>) {
@@ -262,7 +262,7 @@ public class O365Parser implements LogParser {
 
             String key = entry.getKey();
 
-            // Skip already processed fields
+
             if ("UserId".equalsIgnoreCase(key) ||
                     "ObjectId".equalsIgnoreCase(key) ||
                     "SiteUrl".equalsIgnoreCase(key) ||
@@ -302,7 +302,7 @@ public class O365Parser implements LogParser {
             }
         }
 
-        // ---------- Final ----------
+
         return new ArrayList<>(iocSet);
     }
 
@@ -320,12 +320,12 @@ public class O365Parser implements LogParser {
         String val = value.trim().toLowerCase();
 
         try {
-            // Basic fast checks (avoid heavy parsing)
+
             if (!(val.startsWith("http://") || val.startsWith("https://"))) {
                 return false;
             }
 
-            // Validate using URI
+
             java.net.URI uri = new java.net.URI(val);
 
             return uri.getHost() != null;
@@ -406,19 +406,19 @@ public class O365Parser implements LogParser {
 
         String normalized = text.toLowerCase();
 
-        // -------- Domains --------
+
         Matcher domainMatcher = DOMAIN_PATTERN.matcher(normalized);
         while (domainMatcher.find()) {
             addSafe(iocSet, domainMatcher.group());
         }
 
-        // -------- IPs --------
+
         Matcher ipMatcher = IP_PATTERN.matcher(normalized);
         while (ipMatcher.find()) {
             addSafe(iocSet, ipMatcher.group());
         }
 
-        // -------- Hashes --------
+
         addMatches(normalized, MD5_PATTERN, iocSet);
         addMatches(normalized, SHA1_PATTERN, iocSet);
         addMatches(normalized, SHA256_PATTERN, iocSet);

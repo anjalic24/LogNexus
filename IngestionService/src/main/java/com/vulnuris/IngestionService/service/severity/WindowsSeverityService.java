@@ -13,15 +13,15 @@ public class WindowsSeverityService {
     );
 
     private static final Map<Integer, Double> EVENT_ID_FLOORS = Map.of(
-            4625, 7.5,   // failed login
-            4720, 8.5,   // user created
-            4722, 8.0,   // user enabled
-            4724, 8.5,   // password reset
-            4732, 9.0,   // group member add
-            4756, 9.0,   // group member add (global)
-            4688, 4.0,   // process create
-            4672, 9.5,   // admin privilege assigned
-            1102, 10.0   // audit log cleared
+            4625, 7.5,
+            4720, 8.5,
+            4722, 8.0,
+            4724, 8.5,
+            4732, 9.0,
+            4756, 9.0,
+            4688, 4.0,
+            4672, 9.5,
+            1102, 10.0
     );
 
     public double calculateSeverity(Map<String, Object> record) {
@@ -62,7 +62,7 @@ public class WindowsSeverityService {
         return round(Math.min(finalScore, 10.0));
     }
 
-    // ---------------- HELPERS ----------------
+
 
     private boolean isDifferentUser(String subject, String target) {
         return subject != null && target != null && !subject.equals(target);

@@ -34,14 +34,14 @@ public class O365SeverityService {
 
         if (record == null || record.isEmpty()) return 1.0;
 
-        // -------- Operation --------
+
         String operation = normalize(getString(record, "Operation"));
         if (operation.isEmpty()) return 1.0;
 
-        // -------- Workload --------
+
         String workload = normalize(getString(record, "Workload"));
 
-        // -------- User --------
+
         String userId = normalize(getString(record, "UserId"));
 
         if (userId.isEmpty()) {
@@ -51,31 +51,31 @@ public class O365SeverityService {
             }
         }
 
-        // -------- Result --------
+
         String resultStatus = normalize(getString(record, "ResultStatus"));
 
-        // -------- UserType --------
+
         int userType = getInt(record.get("UserType"));
 
-        // -------- UserAgent --------
+
         String userAgent = normalize(getString(record, "userAgent"));
 
         if (userAgent.isEmpty()) {
             userAgent = extractUserAgentFromExtended(record.get("ExtendedProperties"));
         }
 
-        // -------- Flags --------
+
         boolean isExternal = userId.contains("@") && !userId.endsWith(CORP_DOMAIN);
         boolean isScript = SCRIPT_TOOLS.stream().anyMatch(userAgent::contains);
         boolean isFailure = resultStatus.contains("fail") || resultStatus.contains("error");
 
-        // -------- Base Score --------
+
         double baseScore = EXACT_MAP.getOrDefault(
                 operation,
                 WORKLOAD_FLOORS.getOrDefault(workload, 3.0)
         );
 
-        // -------- Context Boost --------
+
         if (isExternal && isFailure && isScript) {
             baseScore = Math.max(baseScore, 9.5);
         } else if (isExternal && (isFailure || isScript)) {
@@ -86,7 +86,7 @@ public class O365SeverityService {
             baseScore = Math.max(baseScore, 8.5);
         }
 
-        // -------- Multipliers --------
+
         double multiplier = 1.0;
 
         if (userType == 2 && baseScore >= 6.0) multiplier *= 1.3;
@@ -99,7 +99,7 @@ public class O365SeverityService {
         return Math.round(Math.min(finalScore, 10.0) * 100.0) / 100.0;
     }
 
-    // ================= HELPERS =================
+
 
     private String getString(Map<?, ?> map, String key) {
         if (map == null || key == null) return "";

@@ -42,13 +42,13 @@ public class PaloAltoSeverityService {
         app = toLower(app);
         dstZone = toLower(dstZone);
 
-        // ---------- BASE SCORE ----------
+
         double baseScore = SUBTYPE_FLOORS.getOrDefault(
                 subtype,
                 SUBTYPE_FLOORS.getOrDefault(type, 3.0)
         );
 
-        // ---------- THREAT BOOST ----------
+
         if (threatName != null && !threatName.isBlank() &&
                 !threatName.equalsIgnoreCase("none")) {
             baseScore = Math.max(baseScore, 9.0);
@@ -56,18 +56,18 @@ public class PaloAltoSeverityService {
 
         double multiplier = 1.0;
 
-        // ---------- ZONE RISK ----------
+
         if (dstZone != null && CRITICAL_ZONES.contains(dstZone)) {
             multiplier *= 1.3;
         }
 
-        // ---------- APP / PORT RISK ----------
+
         if ((app != null && DANGEROUS_APPS.contains(app)) ||
                 dport == 3389 || dport == 22 || dport == 445) {
             multiplier *= 1.2;
         }
 
-        // ---------- ACTION IMPACT ----------
+
         if ("allow".equals(action) && baseScore >= 6.0) {
             multiplier *= 1.4;
         } else if (action != null &&

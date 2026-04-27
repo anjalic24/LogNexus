@@ -40,7 +40,7 @@ public class WazuhAlertsParser implements LogParser{
 
             JsonNode root = mapper.readTree(line);
 
-            // ---------- BASIC ----------
+
             String eventId = UUID.randomUUID().toString();
 
             String rule = getText(root, "rule", "id");
@@ -50,10 +50,10 @@ public class WazuhAlertsParser implements LogParser{
 
             String host = getText(root, "agent", "name");
 
-            // ---------- USER ----------
+
             String user = extractUser(root);
 
-            // ---------- IP ----------
+
             String srcIp = extractSrcIp(root);
             String dstIp = getNested(root, "data", "dstip");
 
@@ -62,28 +62,28 @@ public class WazuhAlertsParser implements LogParser{
 
             String protocol = getNested(root, "data", "protocol");
 
-            // ---------- ACTION ----------
+
             String action = getNested(root, "data", "action");
 
-            // ---------- OBJECT ----------
+
             String object = extractObject(root);
 
-            // ---------- RESULT ----------
+
             String result = mapResult(action);
 
-            // ---------- SEVERITY ----------
+
             double severityScore = wazuhSeverityService.calculateSeverity(root);
             String severity = wazuhSeverityService.toSeverityLabel(severityScore);
 
-            // ---------- MESSAGE ----------
+
             String message = getText(root, "rule", "description");
 
             String mapppedAction = mapAction(action, message);
 
-            // ---------- IOC ----------
+
             List<String> iocs = extractIocs(root, srcIp, dstIp);
 
-            // ---------- CORRELATION ----------
+
             Map<String, String> correlation = new HashMap<>();
             putIfNotNull(correlation, "ruleId", rule);
             putIfNotNull(correlation, "host", host);
@@ -91,14 +91,14 @@ public class WazuhAlertsParser implements LogParser{
             putIfNotNull(correlation, "srcIp", srcIp);
             putIfNotNull(correlation, "dstIp", dstIp);
 
-            // ---------- EXTRA ----------
+
             Map<String, Object> extra = new HashMap<>();
 
             putIfNoNull(extra,"wazuhRuleId", rule);
             putIfNoNull(extra,"wazuhRuleLevel", severity);
             extra.put("data", root.get("data"));
 
-            // Windows nested
+
             JsonNode win = root.path("data").path("win");
             if (!win.isMissingNode()) {
                 extra.put("windowsEventId",
@@ -110,7 +110,7 @@ public class WazuhAlertsParser implements LogParser{
                 }
             }
 
-            // ---------- BUILD ----------
+
             return CesEvent.builder()
                     .eventId(eventId)
 
@@ -152,7 +152,7 @@ public class WazuhAlertsParser implements LogParser{
         }
     }
 
-    // ================= HELPERS =================
+
 
     private String getText(JsonNode node, String... path) {
         JsonNode current = node;
@@ -191,7 +191,7 @@ public class WazuhAlertsParser implements LogParser{
         if (v != null) map.put(k, v);
     }
 
-    // ---------- CUSTOM EXTRACTION ----------
+
 
     private String extractUser(JsonNode root) {
 
@@ -210,13 +210,13 @@ public class WazuhAlertsParser implements LogParser{
         if (targetUser != null) return targetUser;
         if (agent != null) return agent;
 
-        return srcIP; // last fallback
+        return srcIP;
     }
 
     private String extractSrcIp(JsonNode root) {
         String ip = getNested(root, "data", "srcip");
 
-        // Windows fallback
+
         if (ip == null) {
             ip = getText(root, "data", "win", "eventdata", "ipAddress");
         }

@@ -51,21 +51,21 @@ public class CloudTrailParser implements LogParser {
         try {
             if (log == null || log.isEmpty()) return null;
 
-            // ---------- TIMESTAMP ----------
+
             String eventTime = getString(log, "eventTime");
             Instant tsUtc = eventTime != null ? Instant.parse(eventTime) : Instant.now();
 
-            // ---------- USER ----------
+
             Map<String, Object> userIdentity = getMap(log, "userIdentity");
             String userName = getString(userIdentity, "userName");
             String arn = getString(userIdentity, "arn");
             String accessKeyId = getString(userIdentity, "accessKeyId");
 
 
-            // ---------- NETWORK ----------
+
             String srcIp = getString(log, "sourceIPAddress");
 
-            // ---------- CORE FIELDS ----------
+
             String action = getString(log, "eventName");
             String object = getString(log, "eventSource");
             String awsRegion = getString(log, "awsRegion");
@@ -73,23 +73,23 @@ public class CloudTrailParser implements LogParser {
             String userAgent = getString(log, "userAgent");
             String errorMessage = getString(log, "errorMessage");
 
-            // ---------- EVENT ID ----------
+
             String eventId = getString(log, "eventID");
             if (eventId == null) {
                 eventId = UUID.randomUUID().toString();
             }
 
-            // ---------- RESULT ----------
+
             String result = detectResult(errorCode, errorMessage);
 
-            // ---------- IOC EXTRACTION ----------
+
             List<String> iocs = new ArrayList<>();
 
             if (srcIp != null) iocs.add(srcIp);
             if (accessKeyId != null) iocs.add(accessKeyId);
 
 
-            // ---------- CORRELATION KEYS ----------
+
             String readOnly = getString(log, "readOnly");
             String managementEvent =  getString(log, "managementEvent");
             Map<String, String> correlation = new HashMap<>();
@@ -101,7 +101,7 @@ public class CloudTrailParser implements LogParser {
             putIfNotNull(correlation, "readOnly", readOnly);
             putIfNotNull(correlation, "managementEvent", managementEvent);
 
-            // ---------- EXTRA ----------
+
             Map<String, Object> extra = new HashMap<>();
 
             putIfNotNull(extra, "userAgent", userAgent);
@@ -110,10 +110,10 @@ public class CloudTrailParser implements LogParser {
             putIfNotNull(extra,"awsErrorMessage", errorMessage);
 
 
-            // ---------- MESSAGE ----------
+
             String message = buildMessage(action, object, userName, srcIp);
 
-            // ---------- SEVERITY ----------
+
             double severityScore = awsSeverityService.calculateSeverity(log);
             String severity = awsSeverityService.toSeverityLabel(severityScore);
 
@@ -158,7 +158,7 @@ public class CloudTrailParser implements LogParser {
         }
     }
 
-    // ---------- HELPERS ----------
+
 
     private String getString(Map<String, Object> map, String key) {
         if (map == null || key == null) return null;

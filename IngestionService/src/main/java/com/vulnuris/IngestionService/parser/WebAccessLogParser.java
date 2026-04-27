@@ -89,7 +89,7 @@ public class WebAccessLogParser implements LogParser {
             putIfNoNull(extra, "referrer", referrer);
             putIfNoNull(extra, "userAgent", userAgent);
 
-            // ---------- SEVERITY ----------
+
             double severityScore = webServerSeverityService.calculateSeverity(line);
             String severity = webServerSeverityService.toSeverityLabel(severityScore);
 
@@ -137,7 +137,7 @@ public class WebAccessLogParser implements LogParser {
         }
     }
 
-    // ---------------- HELPERS ----------------
+
 
     private Integer parseInt(String val) {
         try {

@@ -12,9 +12,12 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
 @RestController
@@ -29,7 +32,6 @@ public class IngestionController {
 
     @GetMapping("/stream/{bundleId}")
     public SseEmitter stream(@PathVariable String bundleId) {
-        System.out.println("🌐 Stream API called for: " + bundleId);
         return logStreamService.createEmitter(bundleId);
     }
 
@@ -49,14 +51,22 @@ public class IngestionController {
 
     @PostMapping("/upload")
     public ResponseEntity<?> upload(
-            @RequestParam("files") List<MultipartFile> files) {
+            @RequestParam("files") List<MultipartFile> files,
+            @RequestParam(value = "excludeSources", required = false) String excludeSources) {
 
         if (files == null || files.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("status", "ERROR", "message", "No files provided"));
         }
 
+        Set<String> excludeSet = (excludeSources == null || excludeSources.isBlank())
+                ? Set.of()
+                : Arrays.stream(excludeSources.split(","))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .collect(Collectors.toSet());
+
         String bundleId = UUID.randomUUID().toString();
-        IngestionContext context = new IngestionContext(bundleId);
+        IngestionContext context = new IngestionContext(bundleId, excludeSet);
 
         List<String> savedPaths = new ArrayList<>();
 
@@ -83,8 +93,6 @@ public class IngestionController {
                 File dest = uniqueFile(uploadDir, safeName);
                 String filePath = dest.getAbsolutePath();
 
-                System.out.println("📁 Saving file to: " + filePath);
-
                 file.transferTo(dest);
 
                 savedPaths.add(filePath);
@@ -98,12 +106,16 @@ public class IngestionController {
 
 
         logStreamService.send(context.getBundleId(), "🆔 BundleID created: " + context.getBundleId());
+        if (!excludeSet.isEmpty()) {
+            logStreamService.send(context.getBundleId(), "🚫 Excluding source types: " + excludeSet);
+        }
         ingestionService.processFilesFromDisk(savedPaths, context);
 
         return ResponseEntity.ok(
                 Map.of(
                         "status", "SUCCESS",
-                        "bundleId", bundleId
+                        "bundleId", bundleId,
+                        "excludedSources", excludeSet
                 )
         );
     }

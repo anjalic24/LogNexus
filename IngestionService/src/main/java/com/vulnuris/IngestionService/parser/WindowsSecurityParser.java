@@ -53,7 +53,7 @@ public class WindowsSecurityParser implements LogParser {
         try {
             if (logs == null) return null;
 
-            // -------- BASIC FIELDS --------
+
             String eventTime = safeString(logs.get("EventTime"));
             String hostname = safeString(logs.get("Hostname"));
             String message = safeString(logs.get("Message"));
@@ -64,28 +64,28 @@ public class WindowsSecurityParser implements LogParser {
             Map<String, Object> eventData =
                     (Map<String, Object>) logs.getOrDefault("EventData", Collections.emptyMap());
 
-            // -------- USER LOGIC --------
+
             String subjectUser = safeString(eventData.get("SubjectUserName"));
             String targetUser = safeString(eventData.get("TargetUserName"));
 
             String user = resolveUser(subjectUser, targetUser);
 
-            // -------- NETWORK --------
+
             String srcIp = safeString(eventData.get("IpAddress"));
             Integer srcPort = safeInt(eventData.get("IpPort"));
 
-            // -------- TIME --------
+
             Instant tsUtc = parseTime(eventTime);
 
-            // -------- ACTION / RESULT --------
+
             String action = mapAction(eventId);
             String result = mapResult(logs.get("EventType"));
 
-            // -------- IOCS --------
+
             List<String> iocs = new ArrayList<>();
             if (srcIp != null) iocs.add(srcIp);
 
-            // -------- CORRELATION KEYS --------
+
             Map<String, String> correlationKeys = new HashMap<>();
             putIfNotNull(correlationKeys, "user", user);
             putIfNotNull(correlationKeys, "host", hostname);
@@ -93,7 +93,7 @@ public class WindowsSecurityParser implements LogParser {
             putIfNotNull(correlationKeys, "eventId", String.valueOf(eventId));
             putIfNotNull(correlationKeys, "severityMsg", severityStr);
 
-            // -------- EXTRA --------
+
             Map<String, Object> extra = new HashMap<>();
             putIfNoNull(extra, "workstationName", safeString(eventData.get("WorkstationName")));
             putIfNoNull(extra, "windowsEventId", eventId);
@@ -101,7 +101,7 @@ public class WindowsSecurityParser implements LogParser {
             putIfNoNull(extra, "processName", safeString(eventData.get("LogonProcessName")));
             putIfNoNull(extra, "authPackage", safeString(eventData.get("AuthenticationPackageName")));
 
-            // ---------- SEVERITY ----------
+
             double severityScore = windowsSeverityService.calculateSeverity(logs);
             String severity = windowsSeverityService.toSeverityLabel(severityScore);
 
@@ -151,7 +151,7 @@ public class WindowsSecurityParser implements LogParser {
         }
     }
 
-    // ---------------- HELPERS ----------------
+
 
     private String resolveUser(String subject, String target) {
 
@@ -181,7 +181,7 @@ public class WindowsSecurityParser implements LogParser {
         if (eventId == null) return "WINDOWS_EVENT";
 
         switch (eventId) {
-            // ---------------- AUTHENTICATION ----------------
+
             case 4624: return "LOGIN_SUCCESS";
             case 4625: return "LOGIN_FAIL";
             case 4634: return "LOGOUT";
@@ -189,16 +189,16 @@ public class WindowsSecurityParser implements LogParser {
             case 4648: return "EXPLICIT_LOGIN";
             case 4675: return "SID_FILTERING";
 
-            // ---------------- PRIVILEGES ----------------
+
             case 4672: return "ADMIN_PRIVILEGES_ASSIGNED";
             case 4673: return "PRIVILEGED_SERVICE_CALLED";
             case 4674: return "PRIVILEGED_OPERATION";
 
-            // ---------------- PROCESS ----------------
+
             case 4688: return "PROCESS_CREATE";
             case 4689: return "PROCESS_EXIT";
 
-            // ---------------- ACCOUNT MANAGEMENT ----------------
+
             case 4720: return "USER_CREATE";
             case 4722: return "USER_ENABLE";
             case 4723: return "PASSWORD_CHANGE";
@@ -207,7 +207,7 @@ public class WindowsSecurityParser implements LogParser {
             case 4726: return "USER_DELETE";
             case 4738: return "USER_MODIFY";
 
-            // ---------------- GROUP MANAGEMENT ----------------
+
             case 4732: return "LOCAL_GROUP_MEMBER_ADD";
             case 4733: return "LOCAL_GROUP_MEMBER_REMOVE";
 
@@ -217,30 +217,30 @@ public class WindowsSecurityParser implements LogParser {
             case 4728: return "SECURITY_GROUP_MEMBER_ADD";
             case 4729: return "SECURITY_GROUP_MEMBER_REMOVE";
 
-            // ---------------- POLICY / SYSTEM ----------------
+
             case 4719: return "AUDIT_POLICY_CHANGE";
             case 4616: return "SYSTEM_TIME_CHANGED";
             case 4608: return "SYSTEM_START";
             case 4609: return "SYSTEM_SHUTDOWN";
 
-            // ---------------- NETWORK / SHARE ----------------
+
             case 5140: return "FILE_SHARE_ACCESS";
             case 5145: return "FILE_SHARE_PERMISSION_CHECK";
 
-            // ---------------- TASK / SCHEDULER ----------------
+
             case 4698: return "TASK_CREATE";
             case 4699: return "TASK_DELETE";
             case 4700: return "TASK_ENABLE";
             case 4701: return "TASK_DISABLE";
 
-            // ---------------- OBJECT ACCESS ----------------
+
             case 4663: return "OBJECT_ACCESS";
             case 4656: return "HANDLE_REQUEST";
 
-            // ---------------- LOG CLEAR ----------------
+
             case 1102: return "AUDIT_LOG_CLEARED";
 
-            // ---------------- DEFAULT ----------------
+
             default: return "WINDOWS_EVENT";
         }
     }

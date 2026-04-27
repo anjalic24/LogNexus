@@ -53,7 +53,7 @@ public class PaloAltoFirewallParser implements LogParser {
     private CesEvent convert(Map<String, Object> log, String file, long offset) {
         try {
 
-            // ---------- BASIC ----------
+
             String eventId = UUID.randomUUID().toString();
 
             String tsOriginal = safeString(log.get("generated_time"));
@@ -61,10 +61,10 @@ public class PaloAltoFirewallParser implements LogParser {
 
             String type = safeString(log.get("type"));
 
-            // ---------- USER ----------
+
             String user = extractUser(safeString(log.get("src_user")));
 
-            // ---------- IP LOGIC ----------
+
             String src = safeString(log.get("src"));
             String dst = safeString(log.get("dst"));
             String natSrc = safeString(log.get("nat_src"));
@@ -82,21 +82,21 @@ public class PaloAltoFirewallParser implements LogParser {
             String threat = safeString(log.get("threat_name"));
             String category = safeString(log.get("category"));
 
-            // ---------- RESULT ----------
+
             String result = mapResult(action);
 
-            // ---------- MESSAGE ----------
+
             String message = threat != null && !threat.isBlank()
                     ? threat
                     : "PaloAlto " + action + " " + category;
 
-            // ---------- IOC ----------
+
             List<String> iocs = new ArrayList<>();
             addIfNotNull(iocs, srcIp);
             addIfNotNull(iocs, dstIp);
             addIfNotNull(iocs, threat);
 
-            // ---------- CORRELATION KEYS ----------
+
             Map<String, String> correlation = new HashMap<>();
             putIfNotNull(correlation, "srcIp", srcIp);
             putIfNotNull(correlation, "dstIp", dstIp);
@@ -105,7 +105,7 @@ public class PaloAltoFirewallParser implements LogParser {
             putIfNotNull(correlation, "app", safeString(log.get("app")));
             putIfNotNull(correlation, "sessionId", safeString(log.get("session_id")));
 
-            // ---------- EXTRA ----------
+
             boolean isInternalIp = isInternalIp(srcIp);
 
             Map<String, Object> extra = new HashMap<>();
@@ -119,12 +119,12 @@ public class PaloAltoFirewallParser implements LogParser {
 
             putIfNoNull(extra, "isInternalIP", isInternalIp);
 
-            // ---------- SEVERITY ----------
+
             double severityScore = paloAltoSeverityService.calculateSeverity(log);
             String severity = paloAltoSeverityService.toSeverityLabel(severityScore);
 
 
-            // ---------- BUILD ----------
+
             return CesEvent.builder()
                     .eventId(eventId)
 
@@ -162,11 +162,11 @@ public class PaloAltoFirewallParser implements LogParser {
                     .build();
 
         } catch (Exception e) {
-            return null; // fail-safe
+            return null;
         }
     }
 
-    // ================= HELPERS =================
+
 
     private String safeString(Object o) {
         return (o == null || o.toString().isBlank()) ? null : o.toString();
@@ -210,7 +210,7 @@ public class PaloAltoFirewallParser implements LogParser {
         if (val != null) map.put(key, val);
     }
 
-    // Simple public IP preference logic
+
     private String pickPublicIp(String original, String nat) {
         if (isPublicIp(nat)) return nat;
         return original;

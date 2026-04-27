@@ -4,10 +4,11 @@ import com.vulnuris.IngestionService.context.IngestionContext;
 import com.vulnuris.IngestionService.kafka.KafkaProducerService;
 import com.vulnuris.IngestionService.parser.LogParser;
 import com.vulnuris.IngestionService.parser.ParserFactory;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.kafka.core.KafkaTemplate;
 
 import java.io.File;
@@ -15,8 +16,8 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.List;
 
+@Slf4j
 @Service
-@RequiredArgsConstructor
 public class IngestionService {
 
     private final ParserFactory parserFactory;
@@ -24,6 +25,20 @@ public class IngestionService {
     private final KafkaTemplate<String, String> bundleSignalKafkaTemplate;
     private final LogStreamService logStreamService;
     private final BundleControlService bundleControlService;
+
+    @Autowired
+    public IngestionService(
+            ParserFactory parserFactory,
+            KafkaProducerService kafkaProducer,
+            @Qualifier("bundleSignalKafkaTemplate") KafkaTemplate<String, String> bundleSignalKafkaTemplate,
+            LogStreamService logStreamService,
+            BundleControlService bundleControlService) {
+        this.parserFactory = parserFactory;
+        this.kafkaProducer = kafkaProducer;
+        this.bundleSignalKafkaTemplate = bundleSignalKafkaTemplate;
+        this.logStreamService = logStreamService;
+        this.bundleControlService = bundleControlService;
+    }
 
     @Async("ingestionTaskExecutor")
     public void processFilesFromDisk(List<String> filePaths, IngestionContext ingestionContext) {
@@ -56,6 +71,9 @@ public class IngestionService {
                             .forEach(event -> {
                                 if (bundleControlService.isCancelled(ingestionContext.getBundleId())) {
                                     throw new RuntimeException("Cancelled");
+                                }
+                                if (ingestionContext.isExcluded(event.getSourceType())) {
+                                    return;
                                 }
                                 kafkaProducer.send(event, ingestionContext);
                             });
@@ -91,6 +109,4 @@ public class IngestionService {
             bundleControlService.clear(ingestionContext.getBundleId());
         }
     }
-
-
 }

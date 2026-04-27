@@ -95,7 +95,7 @@ public class SyslogParser implements LogParser {
             putIfNoNull(extra, "pid", pid);
             putIfNoNull(extra, "pri", pri);
 
-            // ---------- SEVERITY ----------
+
             double severityScore = syslogSeverityService.calculateSeverity(line);
             String severity = syslogSeverityService.toSeverityLabel(severityScore);
 
@@ -141,7 +141,7 @@ public class SyslogParser implements LogParser {
         }
     }
 
-    // ---------------- EXTRACTION ----------------
+
 
     private String extractSrcIp(String msg) {
         Matcher m = IP_PATTERN.matcher(msg);
@@ -200,7 +200,7 @@ public class SyslogParser implements LogParser {
         return list;
     }
 
-    // ---------------- DETECTION ----------------
+
 
     private String detectAction(String msg) {
 

@@ -87,7 +87,7 @@ public class AwsSeverityService {
         return Math.round(Math.min(finalScore, 10.0) * 100.0) / 100.0;
     }
 
-    // Convert numeric score → String severity
+
     public String toSeverityLabel(double score) {
 
         if (score >= 9.0) return "CRITICAL";
