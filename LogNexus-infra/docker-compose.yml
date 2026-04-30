@@ -1,4 +1,4 @@
-version: '3.8'
+
 
 x-kafka-common-env: &kafka-common-env
   KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -152,13 +152,7 @@ services:
       - "7687:7687"
     environment:
       NEO4J_AUTH: neo4j/password123
-      NEO4J_server_memory_heap_initial__size: 2G
-      NEO4J_server_memory_heap_max__size: 4G
-      NEO4J_server_memory_pagecache_size: 4G
-      NEO4J_db_transaction__timeout: 300s
       NEO4J_PLUGINS: '["apoc"]'
-      NEO4J_db_logs_query_enabled: "INFO"
-      NEO4J_db_logs_query_threshold: 1000ms
     volumes:
       - neo4j_data:/data
       - neo4j_logs:/logs
