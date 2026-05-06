@@ -138,13 +138,13 @@ LogNexus/
 
 ## Prerequisites
 
-| Tool | Required Version | Notes |
-|------|-----------------|-------|
-| **Docker Desktop** | ≥ 24.x | Must be running. Includes Docker Compose v2. Allocate **≥ 10 GB RAM** for the full stack. |
-| **JDK** | **21** | Both services require Java 21. |
-| **Maven** | 3.9+ | _Optional_ — the Maven wrapper (`mvnw` / `mvnw.cmd`) is included in each service. |
-| **Node.js** | ≥ 18 LTS | Required for the React UI. |
-| **npm** | ≥ 9 | Bundled with Node.js. |
+| Tool | Required Version |
+|------|-----------------|
+| **Docker Desktop** | ≥ 24.x |
+| **JDK** | **21** |
+| **Maven** | 3.9+ |
+| **Node.js** | ≥ 18 LTS |
+| **npm** | ≥ 9 |
 
 > **Windows users:** PowerShell or Windows Terminal recommended. The Maven wrappers (`mvnw.cmd`) work natively.
 
